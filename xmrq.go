@@ -1,12 +1,14 @@
 package xmrq
 
 type Queue struct {
+	c                 chan int
 	task              []interface{}
 	head, tail, count int
 }
 
 func NewQueue() *Queue {
 	return &Queue{
+		c:    make(chan int, 1),
 		task: make([]interface{}, 12),
 	}
 }
@@ -30,18 +32,23 @@ func (q *Queue) resize() {
 }
 
 func (q *Queue) Add(e interface{}) {
+	q.c <- 1
 	if q.count == len(q.task) {
 		q.resize()
 	}
 	q.task[q.tail] = e
 	q.tail = (q.tail + 1) % len(q.task)
 	q.count++
+
+	<-q.c
 }
 
 func (q *Queue) Peek() interface{} {
+	q.c <- 1
 	if q.count == 0 {
 		panic("queue is empty !")
 	}
+	<-q.c
 
 	return q.task[q.head]
 }
@@ -55,6 +62,7 @@ func (q *Queue) Get(i int) interface{} {
 }
 
 func (q *Queue) Remove() {
+	q.c <- 1
 	if q.count <= 0 {
 		panic("queue is empty !")
 	}
@@ -64,4 +72,5 @@ func (q *Queue) Remove() {
 	if len(q.task) > 12 && q.count*4 == len(q.task) {
 		q.resize()
 	}
+	<-q.c
 }
